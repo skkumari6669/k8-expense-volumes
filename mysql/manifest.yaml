@@ -1,0 +1,112 @@
+# once confirmation come from admin team regarding storage class, appln team starts develop appln
+# Before pvc creation create statefullset and headless service
+# create pvc and 
+# this is pvc (pv claim access to get external storage data)
+# apiVersion: v1
+# kind: PersistentVolumeClaim
+# metadata:
+#   name: expense-ebs-claim-dynamic # claim name
+# spec:
+#   storageClassName: "expense-ebs" # Empty string must be explicitly set otherwise default StorageClass will be set
+#   accessModes:
+#     - ReadWriteOnce
+#   resources:
+#     requests:
+#       storage: 3Gi  
+
+-------
+# # this is pod  
+# apiVersion: v1
+# kind: Pod
+# metadata:
+#   name: ebs-dynamic
+#   labels:
+#     purpose: ebs-dynamic
+# spec:
+#   # nodeselector:
+#   #   topology.kubernetes.io/zone: us-east-1d
+#   containers:
+#   - name: nginx
+#     image: nginx
+#     volumeMounts: # docker run -v hostpath:containerpath
+#     - name: ebs-dynamic
+#       mountPath: /usr/share/nginx/html
+#   volumes:
+#   - name: ebs-dynamic
+#     persistentVolumeClaim:
+#       claimName: expense-ebs-claim-dynamic  
+
+-------
+
+kind: Service
+apiVersion: v1
+metadata:
+  name: mysql-headless
+  namespace: expense
+spec:
+  clusterIp: None # for headless service there is no clusterIp
+  selector:
+   project: expense
+   component: mysql
+   tier: db
+  ports:
+    protocol: TCP
+    port: 3306 # service port
+    targetPort: 3306 # container port
+    
+-------
+
+kind: Service
+apiVersion: v1
+metadata:
+  name: mysql
+  namespace: expense
+spec:
+  selector:
+   project: expense
+   component: mysql
+   tier: db
+  ports:
+    protocol: TCP
+    port: 3306 # service port
+    targetPort: 3306 # container port
+
+-------
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mysql
+spec:
+  selector:
+    matchLabels:
+      project: expense
+      component: mysql
+      tier: db
+  serviceName: "mysql-headless"  # this is the headless service should be mentioned for stateful set
+  replicas: 2 # by default is 1
+  template:
+    metadata:
+      labels:
+        project: expense
+        component: mysql
+        tier: db
+    spec:
+      containers:
+      - name: mysql
+        image: skkumari6669/mysql:v1
+        volumeMounts:
+        - name: mysql
+          mountPath: /var/lib/mysql  # db location for mysql      
+  volumeClaimTemplates:  # this is pvc definition directly mentioned here 
+  - metadata:
+      name: mysql
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: "expense-ebs"
+      resources:
+        requests:
+          storage: 1Gi
+
+
+

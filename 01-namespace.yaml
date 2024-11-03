@@ -1,0 +1,8 @@
+# admin created namespace who acts as admin he can create namespace for project that is also a role nothing but admin role
+apiVersion: v1
+kind: Namespace
+metadata: 
+  name: expense
+  labels:
+    project: expense
+    environment: dev   

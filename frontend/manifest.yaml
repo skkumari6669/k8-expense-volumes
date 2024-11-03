@@ -1,0 +1,48 @@
+apiVersion: webs/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: expense
+  labels: # these are replicaset labels
+    web: frontend
+    tier: web
+    project: expense
+spec:
+  # modify replicas according to your case
+  replicas: 2
+  selector:
+    # these are used to select the pod to create replicas
+    matchLabels:
+      web: frontend
+      tier: web
+      project: expense
+  # this is pod definition
+  template:
+    metadata:
+      # these labels belongs to pod
+      labels:
+        web: frontend
+        tier: web
+        project: expense
+    spec:
+      type: LoadBalancer
+      containers:
+      - name: frontend
+        image: skkumari6669/frontend:v1
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: frontend
+  namespace: expense
+spec:
+  selector:
+    tier: web
+    web: frontend
+    project: expense
+  ports:
+  - name: frontend-port
+    protocol: TCP
+    port: 80 # service port
+    targetPort: 80 # container port
+
